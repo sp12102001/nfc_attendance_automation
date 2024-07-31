@@ -1,0 +1,191 @@
+- ScanIDCard:
+    Control: Screen
+    Variant: phoneLayout_Tutorial_ver3.0
+    Children:
+    - DisplayIDNumber_3:
+        Control: Gallery
+        Variant: BrowseLayout_Vertical_OneTextVariant_ver5.0
+        Properties:
+          Items: =BarcodeReader1.Barcodes
+          DelayItemLoading: =true
+          Fill: =RGBA(255, 255, 255, 1)
+          Height: =198
+          Layout: =Layout.Vertical
+          LoadingSpinner: =LoadingSpinner.Data
+          ShowScrollbar: =false
+          TemplatePadding: =0
+          TemplateSize: =204
+          Visible: =false
+          Width: =481
+          X: =105
+          Y: =938
+        Children:
+        - IDNumber_3:
+            Control: Label
+            Properties:
+              OnSelect: =Select(Parent)
+              Live: =Live
+              Text: =ThisItem.Value
+              Align: =Align.Center
+              BorderColor: =RGBA(0, 0, 0, 1)
+              BorderThickness: =1
+              Color: =RGBA(9, 33, 98, 1)
+              DisplayMode: =DisplayMode.View
+              FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+              Height: =125
+              PaddingBottom: =0
+              PaddingLeft: =0
+              PaddingRight: =0
+              PaddingTop: =0
+              Size: =30
+              Underline: =true
+              Width: =292
+              X: =78
+              Y: =26
+    - TimeNow_2:
+        Control: Text
+        Properties:
+          Align: ='TextCanvas.Align'.Center
+          Font: =Font.'Segoe UI'
+          Size: =30
+          Text: |
+            =Text(Now())
+          Weight: ='TextCanvas.Weight'.Medium
+          Height: =59
+          Width: =386
+          X: =133
+          Y: =201
+    - Container4_2:
+        Control: GroupContainer
+        Properties:
+          BorderColor: =RGBA(184, 0, 0, 1)
+          BorderThickness: =1
+          Height: =409
+          Width: =470
+          X: =94
+          Y: =310
+        Children:
+        - BarcodeReader1:
+            Control: BarcodeReader
+            Properties:
+              OnChange: =Navigate(Complete)
+              OnScan: |
+                =// Look for existing check-in records
+                ClearCollect(
+                    existingRecords,
+                    Filter(Table1, ScannedIDNumber = IDNumber_3.Text, IsBlank(TimeOut))
+                );
+
+                // Check-in logic
+                If(
+                    ScanNFCTag.Text = "Check In",
+                    If(
+                        IsEmpty(existingRecords),
+                        Patch(
+                            Table1,
+                            Defaults(Table1),
+                            {
+                                TimeIn: Now(),
+                                StatusCheckIn: "Checked In",
+                                User: User().FullName,
+                                Email: User().Email,
+                                ScannedIDNumber: IDNumber_3.Text,
+                                'DD/MM/YY': Today(),
+                                Room: RoomIdentifier.Text
+                            }
+                        );
+                        Notify("Check-in successful", NotificationType.Success),
+                        Notify("You are already checked in", NotificationType.Warning)
+                    )
+                );
+
+                // Check-out logic
+                If(
+                    ScanNFCTag.Text = "Check Out",
+                    If(
+                        !IsEmpty(existingRecords),
+                        ForAll(
+                            existingRecords,
+                            If(
+                                Room = NFCIdentifier.Text,
+                                Patch(
+                                    Table1,
+                                    ThisRecord,
+                                    {
+                                        TimeOut: Now(),
+                                        StatusCheckOut: "Checked Out"
+                                    }
+                                );
+                                Notify("Check-out successful", NotificationType.Success),
+                                Notify("You must check out from the same room you checked in", NotificationType.Warning)
+                            )
+                        ),
+                        Notify("No active check-in found", NotificationType.Warning)
+                    )
+                );
+
+                // Navigate based on the action
+                If(
+                    ScanNFCTag.Text = "Check In" && IsEmpty(existingRecords),
+                    Navigate(Complete, ScreenTransition.Fade)
+                );
+                If(
+                    ScanNFCTag.Text = "Check Out" && !IsEmpty(existingRecords) && First(existingRecords).Room = NFCIdentifier.Text,
+                    Navigate(Complete, ScreenTransition.Fade)
+                )
+              ScanningMode: ='BarcodeReader.ScanningMode'.AutomaticallyScan
+              Text: ="Scan ID"
+              FillColor: =RGBA(215, 58, 60, 1)
+              Height: =367
+              Width: =432
+              X: =22
+              Y: =24
+    - AttendenceHeadline_2:
+        Control: Text
+        Properties:
+          Align: ='TextCanvas.Align'.Center
+          Font: =Font.'Segoe UI'
+          Size: =30
+          Text: =Text("Attendance For ")& Text(User().FullName)
+          Weight: ='TextCanvas.Weight'.Bold
+          Height: =59
+          Width: =549
+          X: =45
+          Y: =142
+    - Header1_3:
+        Control: Header
+        Properties:
+          BasePaletteColor: =RGBA(240, 60, 60, 1)
+          IsTitleVisible: =false
+          Logo: =download
+          Height: =78
+          Width: =640
+    - iconPrev1_3:
+        Control: Classic/Icon
+        Variant: ChevronLeft
+        Properties:
+          OnSelect: =Navigate(ScanNFC)
+          Tooltip: ="Previous step"
+          Color: =RGBA(184, 0, 0, 1)
+          Height: =190
+          Icon: =Icon.ChevronLeft
+          TabIndex: =0
+          Width: =76
+          X: =57
+          Y: =760
+    - ExplanationText1_2:
+        Control: Label
+        Properties:
+          Text: ="Click on the button to scan your ID Card "
+          Align: =Align.Center
+          BorderColor: =RGBA(0, 0, 0, 1)
+          DisplayMode: =DisplayMode.View
+          FontWeight: =FontWeight.Lighter
+          Height: =169
+          LineHeight: =1.3
+          PaddingLeft: =20
+          PaddingRight: =20
+          Size: =22
+          Width: =410
+          X: =124
+          Y: =770

@@ -1,0 +1,114 @@
+- ScanNFC:
+    Control: Screen
+    Variant: phoneLayout_Tutorial_ver3.0
+    Children:
+    - RoomIdentifier:
+        Control: Text
+        Properties:
+          Align: ='TextCanvas.Align'.Center
+          FontColor: =RGBA(0, 0, 0, 1)
+          Text: =[@VarP]
+          Height: =42
+          Width: =216
+          X: =234
+          Y: =1044
+    - TimeNow_1:
+        Control: Text
+        Properties:
+          Align: ='TextCanvas.Align'.Center
+          Font: =Font.'Segoe UI'
+          Size: =30
+          Text: |
+            =Text(Now())
+          Weight: ='TextCanvas.Weight'.Medium
+          Height: =59
+          Width: =386
+          X: =127
+          Y: =201
+    - Container4_1:
+        Control: GroupContainer
+        Properties:
+          BorderColor: =RGBA(184, 0, 0, 1)
+          BorderThickness: =1
+          Height: =409
+          Width: =470
+          X: =94
+          Y: =310
+        Children:
+        - ScanNFCTag:
+            Control: Classic/Button
+            Properties:
+              OnSelect: "=UpdateContext({ nfcResult: ReadNFC() });\n\nIf(\n    !IsBlank(nfcResult.Identifier),\n    // NFC tag read successfully\n    Set(VarP, nfcResult.Identifier);\n\n    // Look up room info and set RoomInfo\n    Set(\n        RoomName,\n        LookUp(\n            RoomInfo, \n            NFC_Tag = VarP,\n            RoomName\n        )\n    );\n\n    If(\n        !IsBlank(RoomName),\n        // Room found, now check attendance\n        Set(\n            AttendanceRecord,\n            LookUp(\n                StudentAttendance,\n                NFC_Tag = RoomName && StudentName = User().FullName,\n                {ID: ID, TimeIn: TimeIn, TimeOut: TimeOut}\n            )\n        );\n\n        If(\n            IsBlank(AttendanceRecord.ID),\n            // No existing record, create new entry\n            Patch(\n                StudentAttendance,\n                Defaults(StudentAttendance),\n                {\n                    NFC_Tag: RoomName,\n                    StudentName: User().FullName,\n                    Email: User().Email,\n                    AttendanceDate: Today(),\n                    TimeIn: Now()\n                    \n                }\n            );\n            Notify(\"Check-in recorded for \" & User().FullName, NotificationType.Success),\n\n            // Existing record found\n            If(\n                IsBlank(AttendanceRecord.TimeOut),\n                // Check-out\n                Patch(\n                    StudentAttendance,\n                    AttendanceRecord,\n                    { \n                        TimeOut: Now()\n                    }\n                );\n                Notify(\"Check-out recorded for \" & User().FullName, NotificationType.Success),\n\n                // Check if it's been more than 10 minutes since last check-out\n                If(\n                    DateDiff(AttendanceRecord.TimeOut, Now(), TimeUnit.Minutes) > 10,\n                    // More than 10 minutes, allow new check-in\n                    Patch(\n                        StudentAttendance,\n                        Defaults(StudentAttendance),\n                        {\n                            NFC_Tag: VarP,\n                            StudentName: User().FullName,\n                            TimeIn: Now()\n                        }\n                    );\n                    Notify(\"New check-in recorded for \" & User().FullName, NotificationType.Success),\n                    // Less than 10 minutes, notify to wait\n                    Notify(\"Please wait at least 10 minutes before checking in again.\", NotificationType.Warning)\n                )\n            )\n        ),\n        // No room found for this NFC tag\n        Notify(\"No room found for this NFC tag\", NotificationType.Warning)\n    )\n);\nNotify(\"Failed to read NFC tag\", NotificationType.Error)\n\n"
+              Text: =PassedText
+              AutoDisableOnSelect: =false
+              Font: =Font.Georgia
+              FontWeight: =FontWeight.Normal
+              Height: =358
+              Width: =417
+              X: =28
+              Y: =28
+        - Status:
+            Control: Text
+            Properties:
+              AutoHeight: =true
+              Font: =Font.'Segoe UI'
+              FontColor: =RGBA(255, 255, 255, 1)
+              Text: =PassedText
+              VerticalAlign: ='TextCanvas.VerticalAlign'.Middle
+              Weight: ='TextCanvas.Weight'.Bold
+              Height: =159
+              Visible: =false
+              Width: =256
+              X: =108
+              Y: =127
+    - AttendenceHeadline_1:
+        Control: Text
+        Properties:
+          Align: ='TextCanvas.Align'.Center
+          Font: =Font.'Segoe UI'
+          Size: =30
+          Text: =Text("Attendance For ")& Text(User().FullName)
+          Weight: ='TextCanvas.Weight'.Bold
+          Height: =59
+          Width: =549
+          X: =45
+          Y: =142
+    - Header1_2:
+        Control: Header
+        Properties:
+          BasePaletteColor: =RGBA(240, 60, 60, 1)
+          IsTitleVisible: =false
+          Logo: =download
+          Height: =78
+          Width: =640
+    - iconPrev1_2:
+        Control: Classic/Icon
+        Variant: ChevronLeft
+        Properties:
+          OnSelect: =Navigate(IntroScreen)
+          Tooltip: ="Previous step"
+          AutoDisableOnSelect: =false
+          Color: =RGBA(184, 0, 0, 1)
+          Height: =190
+          Icon: =Icon.ChevronLeft
+          TabIndex: =0
+          Width: =75
+          X: =94
+          Y: =799
+    - ExplanationText1_1:
+        Control: Label
+        Properties:
+          OnSelect: =Navigate(IntroScreen)
+          Text: ="Click on the button and approach the NFC Tag"
+          Align: =Align.Center
+          BorderColor: =RGBA(0, 0, 0, 1)
+          DisplayMode: =DisplayMode.View
+          FontWeight: =FontWeight.Lighter
+          Height: =169
+          LineHeight: =1.3
+          PaddingLeft: =20
+          PaddingRight: =20
+          Size: =22
+          Width: =366
+          X: =169
+          Y: =820
